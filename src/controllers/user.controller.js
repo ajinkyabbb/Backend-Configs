@@ -26,7 +26,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   ///////////////////////////////////////////////////////////////////////////////////////
   // check if user already exists: username, email
-  const existedUser = User.findOne({
+  const existedUser = await User.findOne({
     $or: [{ username }, { email }],
   });
 
@@ -36,24 +36,23 @@ const registerUser = asyncHandler(async (req, res) => {
 
   ////////////////////////////////////////////////////////////////////////////////
   // check for images, check for avatar
-  const avatarLocalPath = req.files?.avatar[0]?.path;
-
+  const avatarLocalPath =  req.files?.avatar[0]?.path;
+  const coverImageLocalPath = req.files?.coverImage[0]?.path;
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar is required");
   }
-
+ 
   //////////////////////////////////////////////////////////////////////////////////////////
   // upload them to cloudinary, avatar
   const avatar = await uploadOnCloudinary(avatarLocalPath);
   const coverImage = await uploadOnCloudinary(coverImageLocalPath);
-
   if (!avatar) {
     throw new ApiError(400, "Avatar upload required");
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////
   // create user object - create enrty in db
-  const user = User.create({
+  const user = await User.create({
     fullName,
     avatar: avatar.url,
     coverImage: coverImage?.url || "",
@@ -62,14 +61,13 @@ const registerUser = asyncHandler(async (req, res) => {
     username: username.toLowerCase(),
   });
   
-
  
   //////////////////////////////////////////////////////////////////////////////////////////////
   // remove password and refresh tocken field from response
   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
-
+  console.log(createdUser)
   //////////////////////////////////////////////////////////////////////////////////////////////
   // check for user creation
   if(!createdUser){
@@ -79,7 +77,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////
   // return res
-  return res.status(2010).json(
+  return res.status(201).json(
     new ApiResponse(200, createdUser, "User registered successfully")
   )
 });
